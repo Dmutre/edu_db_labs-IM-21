@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,17 +8,134 @@ datasource db {
 }
 
 model User {
-  id    Int     @default(autoincrement()) @id
-  email String  @unique
-  name  String?
-  posts Post[]
+  id          Int       @default(autoincrement()) @id
+  login       String   @unique
+  password    String   
+  mail        String   @unique
+  name        String
+  role        Role      @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  roleId      Int        
+  acceess     Access[]
+
+  @@map("users")
+}
+
+model Role {
+  id          Int            @default(autoincrement()) @id
+  name        String
+  description String?
+  users       User[]
+  permissions  Permission_has_Role[]
+
+  @@map("roles")
+}
+
+model Permission_has_Role {
+  role          Role           @relation(fields: [roleId], references: [id])
+  roleId        Int            @map("role_id")
+  permission    Permission     @relation(fields: [permissionId], references: [id])
+  permissionId  Int            @map("permission_id")
+
+  @@id([roleId, permissionId])
+  @@map("role_has_permission")
+}
+
+model Permission {
+  id          Int            @default(autoincrement()) @id
+  name        String
+  roles       Permission_has_Role[]
+
+  @@map("permissions")
+}
+
+model Organization_list {
+  id                      Int                            @default(autoincrement()) @id
+  organizations_list      Organization_list_has_Organizations[]
+
+  @@map("organizations_list")
+}
+
+model Organization_list_has_Organizations {
+  organization_list       Organization_list             @relation(fields: [organization_list_id], references: [id])
+  organization_list_id    Int
+  organization            Organization                  @relation(fields: [organization_id], references: [id])  
+  organization_id         Int
+
+  @@id([organization_list_id, organization_id])
+  @@map("Organization_list_has_Organizations")
+}
+
+model Organization {
+  id                      Int                            @default(autoincrement()) @id
+  name                    String                         @unique
+  description             String?
+  organization_lists      Organization_list_has_Organizations[]
+  
+  @@map("organizations")
+}
+
+model Access {
+  id          Int            @default(autoincrement()) @id
+  time        DateTime       @default(now())
+  User        User           @relation(fields: [userId], references: [id])
+  userId      Int
+  Post        Post           @relation(fields: [postId], references: [id])
+  postId      Int     
+
+  @@map("access")
 }
 
 model Post {
-  id        Int      @default(autoincrement()) @id
-  title     String
-  content   String?
-  published Boolean? @default(false)
-  author    User?    @relation(fields: [authorId], references: [id])
-  authorId  Int?
+  id               Int            @default(autoincrement()) @id
+  name             String
+  title            String
+  description      String?
+  uploadedAt       DateTime      @default(now())
+  updatedAt        DateTime      @default(now())
+  Access           Access[]
+  Data             Data          @relation(fields: [dataId], references: [id])
+  dataId           Int
+  Rating           Rating[]
+  Post_has_cat     Post_has_category[]      
+
+  @@map("posts")  
+}
+
+model Data {
+  id          Int            @default(autoincrement()) @id
+  size        String
+  format      String
+  name        String
+  uploadedAt  DateTime       @default(now())
+  Post        Post[]
+
+  @@map("datas")
+}
+
+model Rating {
+  id          Int            @default(autoincrement()) @id
+  value       Float
+  Post        Post           @relation(fields: [postId], references: [id])
+  postId      Int
+
+  @@map("ratings")
+}
+
+model Post_has_category {
+  Post        Post           @relation(fields: [postId], references: [id])
+  postId      Int
+  Category    Category   @relation(fields: [categoryid], references: [id])  
+  categoryid  Int
+
+  @@id([postId, categoryid])
+  @@map("Post_has_category")
+}
+
+model Category {
+  id          Int            @default(autoincrement()) @id
+  name        String
+  description String
+  Post        Post_has_category[]
+
+  @@map("categories")
 }
