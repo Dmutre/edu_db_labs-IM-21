@@ -8,14 +8,16 @@ datasource db {
 }
 
 model User {
-  id          Int       @default(autoincrement()) @id
-  login       String   @unique
-  password    String   
-  mail        String   @unique
-  name        String
-  role        Role      @relation(fields: [roleId], references: [id])
-  roleId      Int        
-  acceess     Access[]
+  id                    Int       @default(autoincrement()) @id
+  login                 String    @unique
+  password              String   
+  mail                  String    @unique
+  name                  String
+  role                  Role      @relation(fields: [roleId], references: [id])
+  roleId                Int        
+  Organization          Organization_list @relation(fields: [Organization_list_id], references: [id])
+  Organization_list_id  Int 
+  acceess               Access[]
 
   @@map("users")
 }
@@ -51,6 +53,7 @@ model Permission {
 model Organization_list {
   id                      Int                            @default(autoincrement()) @id
   organizations_list      Organization_list_has_Organizations[]
+  users                   User[]
 
   @@map("organizations_list")
 }
