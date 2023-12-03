@@ -27,7 +27,7 @@
 ## PATCH
 
 <p align="center">
-    <img src="./media/patch%20user.png" alt="Patch user">
+    <img src="./media/patchUser.png" alt="Patch user">
 </p>
 
 ## DELETE
