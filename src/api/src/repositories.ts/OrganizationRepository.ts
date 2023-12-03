@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { Organization, Organization_list_has_Organizations } from "@prisma/client";
+import { Organization_list_has_Organizations } from "@prisma/client";
 import { PrismaService } from "src/prisma/PrismaService";
 
 @Injectable()
@@ -16,7 +16,6 @@ export class OrganizationRepository {
     });
 
     const organizations = await this.getOrganizationsFromList(organizationsList);
-    console.log(organizations);
     return organizations;
   }
 

@@ -9,9 +9,9 @@ datasource db {
 
 model User {
   id                    Int       @default(autoincrement()) @id
-  login                 String    @unique
+  login                 String    
   password              String   
-  mail                  String    @unique
+  mail                  String    
   name                  String
   role                  Role      @relation(fields: [roleId], references: [id])
   roleId                Int        
