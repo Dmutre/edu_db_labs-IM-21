@@ -917,18 +917,28 @@ bootstrap();
 
 ### Get запити
 
-![Get All request](../design/photo/GetAll.png)
+<p align="center">
+    <img src="../design/photo/GetAll.png" alt="Get All request">
+</p>
 
-![Get user by id request](../design/photo/GetUserById.png)
+<p align="center">
+    <img src="../design/photo/GetUserById.png" alt="Get user by id request">
+</p>
 
 ### Post запит
 
-![Create user request](../design/photo/Post.png)
+<p align="center">
+    <img src="../design/photo/Post.png" alt="Create user request">
+</p>
 
 ### Patch запит
 
-![Update user](../design/photo/Patch.png)
+<p align="center">
+    <img src="../design/photo/Patch.png" alt="Update user">
+</p>
 
 ## Delete запит
 
-![Delete user](../design/photo/Delete.png)
+<p align="center">
+    <img src="../design/photo/Delete.png" alt="Delete user">
+</p>

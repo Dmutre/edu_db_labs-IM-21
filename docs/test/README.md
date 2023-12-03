@@ -2,32 +2,48 @@
 
 ## Запуск системи
 
-![Launch REST API](./media/launch.png)
+<p align="center">
+    <img src="./media/launch.png" alt="Launch REST API">
+</p>
 
 ## POST запит 
 
-![Create user](./media/image.png)
+<p align="center">
+    <img src="./media/image.png" alt="Create user">
+</p>
 
 ## GET (отримати всіх користувачів)
 
-![Get all users](./media/getAll.png)
+<p align="center">
+    <img src="./media/getAll.png" alt="Get all users">
+</p>
 
 ## GET (по індентифікатору)
 
-![Get user by id](./media/getById.png)
+<p align="center">
+    <img src="./media/getById.png" alt="Get user by id">
+</p>
 
 ## PATCH
 
-![Patch user](./media/patch%20user.png)
+<p align="center">
+    <img src="./media/patch%20user.png" alt="Patch user">
+</p>
 
 ## DELETE
 
-![Delete user](./media/deleteUser.png)
+<p align="center">
+    <img src="./media/deleteUser.png" alt="Delete user">
+</p>
 
 ## Обробка помилки: "Користувач з таким індетифікатором не був знайдений"
 
-![User with such id was not found](./media/userWasNotFound.png)
+<p align="center">
+    <img src="./media/userWasNotFound.png" alt="User with such id was not found">
+</p>
 
 ## Обробка помилки: "Дані для створення користувача були неправильно вказані"
 
-![Validation messages](./media/Validation.png)
+<p align="center">
+    <img src="./media/Validation.png" alt="Validation messages">
+</p>
