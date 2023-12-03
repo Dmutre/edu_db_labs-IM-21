@@ -361,4 +361,574 @@ Insert into mydb.category (name, description, Post_id, Category_id) Values
 
 
 ## RESTfull Сервіс для управління даними
-*У розробці...*
+
+### Файл-схема бази даниз
+
+```prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                    Int       @default(autoincrement()) @id
+  login                 String    
+  password              String   
+  mail                  String    
+  name                  String
+  role                  Role      @relation(fields: [roleId], references: [id])
+  roleId                Int        
+  Organization          Organization_list @relation(fields: [Organization_list_id], references: [id])
+  Organization_list_id  Int 
+  acceess               Access[]
+
+  @@map("users")
+}
+
+model Role {
+  id          Int            @default(autoincrement()) @id
+  name        String
+  description String?
+  users       User[]
+  permissions  Permission_has_Role[]
+
+  @@map("roles")
+}
+
+model Permission_has_Role {
+  role          Role           @relation(fields: [roleId], references: [id])
+  roleId        Int            @map("role_id")
+  permission    Permission     @relation(fields: [permissionId], references: [id])
+  permissionId  Int            @map("permission_id")
+
+  @@id([roleId, permissionId])
+  @@map("role_has_permission")
+}
+
+model Permission {
+  id          Int            @default(autoincrement()) @id
+  name        String
+  roles       Permission_has_Role[]
+
+  @@map("permissions")
+}
+
+model Organization_list {
+  id                      Int                            @default(autoincrement()) @id
+  organizations_list      Organization_list_has_Organizations[]
+  users                   User[]
+
+  @@map("organizations_list")
+}
+
+model Organization_list_has_Organizations {
+  organization_list       Organization_list             @relation(fields: [organization_list_id], references: [id])
+  organization_list_id    Int
+  organization            Organization                  @relation(fields: [organization_id], references: [id])  
+  organization_id         Int
+
+  @@id([organization_list_id, organization_id])
+  @@map("Organization_list_has_Organizations")
+}
+
+model Organization {
+  id                      Int                            @default(autoincrement()) @id
+  name                    String                         @unique
+  description             String?
+  organization_lists      Organization_list_has_Organizations[]
+  
+  @@map("organizations")
+}
+
+model Access {
+  id          Int            @default(autoincrement()) @id
+  time        DateTime       @default(now())
+  User        User           @relation(fields: [userId], references: [id])
+  userId      Int
+  Post        Post           @relation(fields: [postId], references: [id])
+  postId      Int     
+
+  @@map("access")
+}
+
+model Post {
+  id               Int            @default(autoincrement()) @id
+  name             String
+  title            String
+  description      String?
+  uploadedAt       DateTime      @default(now())
+  updatedAt        DateTime      @default(now())
+  Access           Access[]
+  Data             Data          @relation(fields: [dataId], references: [id])
+  dataId           Int
+  Rating           Rating[]
+  Post_has_cat     Post_has_category[]      
+
+  @@map("posts")  
+}
+
+model Data {
+  id          Int            @default(autoincrement()) @id
+  size        String
+  format      String
+  name        String
+  uploadedAt  DateTime       @default(now())
+  Post        Post[]
+
+  @@map("datas")
+}
+
+model Rating {
+  id          Int            @default(autoincrement()) @id
+  value       Float
+  Post        Post           @relation(fields: [postId], references: [id])
+  postId      Int
+
+  @@map("ratings")
+}
+
+model Post_has_category {
+  Post        Post           @relation(fields: [postId], references: [id])
+  postId      Int
+  Category    Category   @relation(fields: [categoryid], references: [id])  
+  categoryid  Int
+
+  @@id([postId, categoryid])
+  @@map("Post_has_category")
+}
+
+model Category {
+  id          Int            @default(autoincrement()) @id
+  name        String
+  description String
+  Post        Post_has_category[]
+
+  @@map("categories")
+}
+```
+
+### Сервіс підключення до бази даних 
+
+```ts
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+
+@Injectable()
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
+  async onModuleInit () {
+    await this.$connect();
+  }
+
+  async onModuleDestroy () {
+    await this.$disconnect();
+  }
+}
+```
+
+### Модуль Прізми
+```ts
+import { Global, Module } from '@nestjs/common';
+import { PrismaService } from './PrismaService';
+
+@Global()
+@Module({
+  providers: [PrismaService],
+  exports: [PrismaService],
+})
+export class PrismaModule {}
+```
+
+### Модуль для обробки запитів (контролер для користувачів)
+```ts
+import { Module } from "@nestjs/common";
+import { UserController } from "src/controllers/UserController";
+import { OrganizationRepository } from "src/repositories.ts/OrganizationRepository";
+import { RoleRepository } from "src/repositories.ts/RoleRepository";
+import { UserRepository } from "src/repositories.ts/UserRepository";
+import { UserService } from "src/services/UserService";
+
+
+@Module({
+  controllers: [UserController],
+  providers: [UserService, UserRepository, RoleRepository, OrganizationRepository],
+})
+export class UserModule {}
+```
+
+### Файл контролеру для обробки запитів для користувачів
+```ts
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import { ApiOkResponse, ApiOperation, ApiParam, ApiTags } from "@nestjs/swagger";
+import { UpdateUserDTO } from "src/dtos/UpdateUserDTO";
+import { UserDTO } from "src/dtos/UserDTO";
+import { UserIdPipe } from "src/pipes/UserIdPipe";
+import { UserResponse } from "src/responses/UserResponse";
+import { UserService } from "src/services/UserService";
+
+
+@ApiTags('Users')
+@Controller({
+  path: '/users'
+})
+export class UserController {
+  constructor(
+    private userService: UserService
+  ) {}
+
+  @ApiOkResponse({
+    type: [UserResponse]
+  })
+  @ApiOperation({
+    description: 'Endpoint to get all users',
+  })
+  @Get()
+  async getAll () {
+    return await this.userService.getAll();
+  }
+
+  @ApiOkResponse({
+    type: UserResponse
+  })
+  @ApiOperation({
+    description: 'Endpoint to get user by id'
+  })
+  @Get('/:userId')
+  async getUserById(
+    @Param('userId', UserIdPipe) userId: number
+  ) {
+      return await this.userService.getUserById(userId);
+  }
+
+  @ApiOkResponse({
+    type: UserResponse
+  })
+  @ApiOperation({
+    description: 'Endpoint to create user'
+  })
+  @Post()
+  async createUser(@Body() data: UserDTO) {
+      return await this.userService.createUser(data);
+  }
+
+  @ApiOkResponse({
+    type: UserResponse
+  })
+  @ApiOperation({
+    description: 'Endpoint to update user'
+  })
+  @Patch('/:userId')
+  async updateUser(
+    @Body() data: UpdateUserDTO,
+    @Param('userId', UserIdPipe) userId: number
+    ) {
+      return await this.userService.updateUser(userId, data);
+  }
+
+  @ApiOkResponse({
+    type: UserResponse
+  })
+  @ApiOperation({
+    description: 'Endpoint to delete user by id'
+  })
+  @Delete('/:userId')
+  async deleteUser(
+    @Param('userId', UserIdPipe) userId: number
+    ) {
+      return await this.userService.deleteUser(userId);
+  }
+}
+```
+
+### Сервіс для обробки запитів
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { UpdateUserDTO } from "src/dtos/UpdateUserDTO";
+import { UserDTO } from "src/dtos/UserDTO";
+import { PrismaService } from "src/prisma/PrismaService";
+import { OrganizationRepository } from "src/repositories.ts/OrganizationRepository";
+import { RoleRepository } from "src/repositories.ts/RoleRepository";
+import { UserRepository } from "src/repositories.ts/UserRepository";
+
+
+@Injectable()
+export class UserService {
+  constructor(
+    private prismaService: PrismaService,
+    private userRepository: UserRepository,
+    private roleRepository: RoleRepository,
+    private organizationRepository: OrganizationRepository,
+  ) {}
+
+  async getAll() {
+    return this.prismaService.user.findMany();
+  }
+
+  async getUserById(userId: number) {
+    const user = await this.userRepository.findById(userId);
+    const userRole = await this.roleRepository.findRoleById(user.roleId)
+    const userOrganizations = await this.organizationRepository.getOrganizationsFromOrganizationsList(user.Organization_list_id);
+    
+    const userResponse = {
+      id: user.id,
+      login: user.login,
+      password: user.password,
+      mail: user.mail,
+      name: user.name,
+      role: userRole,
+      organization: userOrganizations.flat(),
+    };
+
+    return userResponse;
+  }
+
+  async createUser(data: UserDTO) {
+    return await this.userRepository.create(data);
+  }
+
+  async updateUser(userId: number, data: UpdateUserDTO) {
+    return await this.userRepository.update(userId, data);
+  }
+
+  async deleteUser(userId: number) {
+    return await this.userRepository.delete(userId);
+  }
+}
+```
+
+### DTO для створення користувача
+
+```ts
+import { ApiProperty } from "@nestjs/swagger"
+import { IsEmail, IsNotEmpty, MaxLength, MinLength } from "class-validator"
+import { validationOptionMsg } from "src/utils/exceptions/ValidationOptionMsg"
+
+
+export class UserDTO {
+
+  @ApiProperty({
+    description: 'User login'
+  })
+  @MinLength(3, validationOptionMsg('Login is too short (min: 3)'))
+  @MaxLength(20, validationOptionMsg('Login is too long (max: 20)'))
+  @IsNotEmpty(validationOptionMsg('Login cannot be empty'))
+  login: string
+
+  @ApiProperty({
+    description: 'User password'
+  })
+  @MinLength(5, validationOptionMsg('Password is too short (min: 5)'))
+  @MaxLength(25, validationOptionMsg('Password is too long (max: 25)'))
+  @IsNotEmpty(validationOptionMsg('Password cannot be empty'))
+  password: string
+
+  @ApiProperty({
+    description: 'User email'
+  })
+  @IsEmail()
+  mail: string
+
+  @ApiProperty({
+    description: 'User name'
+  })
+  @MinLength(3, validationOptionMsg('Name is too short (min: 3)'))
+  @MaxLength(20, validationOptionMsg('Name is too long (max: 20)'))
+  @IsNotEmpty(validationOptionMsg('Name cannot be empty'))
+  name: string
+}
+```
+
+### DTO для оновлення користувачів
+
+```ts
+import { ApiProperty } from "@nestjs/swagger"
+import { IsEmail, IsNotEmpty, MaxLength, MinLength } from "class-validator"
+import { validationOptionMsg } from "src/utils/exceptions/ValidationOptionMsg"
+
+
+export class UpdateUserDTO {
+
+  @ApiProperty({
+    description: 'User login'
+  })
+  @MinLength(3, validationOptionMsg('Login is too short (min: 3)'))
+  @MaxLength(20, validationOptionMsg('Login is too long (max: 20)'))
+  @IsNotEmpty(validationOptionMsg('Login cannot be empty'))
+  login?: string
+
+  @ApiProperty({
+    description: 'User password'
+  })
+  @MinLength(5, validationOptionMsg('Password is too short (min: 5)'))
+  @MaxLength(25, validationOptionMsg('Password is too long (max: 25)'))
+  @IsNotEmpty(validationOptionMsg('Password cannot be empty'))
+  password?: string
+
+  @ApiProperty({
+    description: 'User email'
+  })
+  @IsEmail()
+  mail?: string
+
+  @ApiProperty({
+    description: 'User name'
+  })
+  @MinLength(3, validationOptionMsg('Name is too short (min: 3)'))
+  @MaxLength(20, validationOptionMsg('Name is too long (max: 20)'))
+  @IsNotEmpty(validationOptionMsg('Name cannot be empty'))
+  name?: string
+}
+```
+
+### Патерн для відповіді для користувачів:
+
+```ts
+import { ApiProperty } from "@nestjs/swagger";
+import { Organization, Role } from "@prisma/client";
+
+
+export class UserResponse {
+  @ApiProperty({
+    description: 'Id of user' 
+  })
+  id: Number
+
+  @ApiProperty({
+    description: 'Login of user'
+  })
+  login: string
+
+  @ApiProperty({
+    description: 'Password of user'
+  })
+  password: string
+
+  @ApiProperty({
+    description: 'Main of user'
+  })
+  mail: string
+
+  @ApiProperty({
+    description: 'User\'s name'
+  })
+  name: string
+
+  @ApiProperty({
+    description: 'User\'s role'
+  })
+  role: Role
+
+  @ApiProperty({
+    description: 'Array of organizations, that user belongs to'
+  })
+  organization: [Organization]
+}
+```
+
+### Виключна ситуація, коли сутність не було знайдена за її id у базі даних
+
+```ts
+import { HttpException, HttpStatus } from "@nestjs/common";
+
+
+export class InvalidEntityIdException extends HttpException {
+  constructor (entity: string) {
+    super(`${entity} with such id is not found`, HttpStatus.BAD_REQUEST);
+  }
+}
+```
+
+### Pipe для користувачів
+
+```ts
+import { ArgumentMetadata, Injectable, PipeTransform } from "@nestjs/common";
+import { UserRepository } from "src/repositories.ts/UserRepository";
+import { InvalidEntityIdException } from "src/utils/exceptions/InvalidEntityIdException";
+
+
+@Injectable()
+export class UserIdPipe implements PipeTransform {
+  constructor(
+    private userRepository: UserRepository
+  ) {}
+  
+  transform(userId: number) {
+    userId = Number(userId);
+    const user = this.userRepository.findById(userId);
+    if(!user) {
+      throw new InvalidEntityIdException('User');
+    }
+    return userId;
+  }
+}
+```
+
+### Функція для повідомлення помилки для декораторів
+
+```ts
+import { ValidationOptions } from 'class-validator';
+
+export function validationOptionsMsg (message:string): ValidationOptions {
+  return { message };
+}
+```
+
+### Головний модуль, який збирає у собі всі модулі
+
+```ts
+import { Module } from '@nestjs/common';
+import { PrismaModule } from './prisma/PrismaModule';
+import { UserModule } from './modules/UserModule';
+
+@Module({
+  imports: [PrismaModule, UserModule],
+})
+export class AppModule {}
+```
+
+### Головний файл, з якого починається запуск програми і де налаштовується конфігурації програми
+
+```ts
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  const config = new DocumentBuilder()
+    .setTitle('DB PRACTICE')
+    .setDescription('Here is decumentation of api, that communicate with mysql DB')
+    .setVersion('0.1')
+    .build()
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api', app, document);
+  app.useGlobalPipes(new ValidationPipe());
+  await app.listen(process.env.PORT);
+  console.log(`Server started on ${process.env.PORT}`);
+}
+bootstrap();
+```
+## Документація з використанням Swagger
+
+### Get запити
+
+![Get All request](../design/photo/GetAll.png)
+
+![Get user by id request](../design/photo/GetUserById.png)
+
+### Post запит
+
+![Create user request](../design/photo/Post.png)
+
+### Patch запит
+
+![Update user](../design/photo/Patch.png)
+
+## Delete запит
+
+![Delete user](../design/photo/Delete.png)
