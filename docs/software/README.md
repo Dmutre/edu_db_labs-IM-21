@@ -918,27 +918,27 @@ bootstrap();
 ### Get запити
 
 <p align="center">
-    <img src="../design/photo/GetAll.png" alt="Get All request">
+    <img src="./media/GetAll.png" alt="Get All request">
 </p>
 
 <p align="center">
-    <img src="../design/photo/GetUserById.png" alt="Get user by id request">
+    <img src="./media/GetUserById.png" alt="Get user by id request">
 </p>
 
 ### Post запит
 
 <p align="center">
-    <img src="../design/photo/Post.png" alt="Create user request">
+    <img src="./media/Post.png" alt="Create user request">
 </p>
 
 ### Patch запит
 
 <p align="center">
-    <img src="../design/photo/Patch.png" alt="Update user">
+    <img src="./media/Patch.png" alt="Update user">
 </p>
 
 ## Delete запит
 
 <p align="center">
-    <img src="../design/photo/Delete.png" alt="Delete user">
+    <img src="./media/Delete.png" alt="Delete user">
 </p>
